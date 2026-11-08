@@ -108,6 +108,8 @@ def process_listing(feed_id: int, actor: str = "system", run_id: Optional[str] =
         cls_attempts = ext_attempts = 0
         clean_title = N.smart_title(mask_sensitive(N.strip_title_noise(raw.raw_title)))[:150]
         pre_blocked = any(v.severity == "BLOCK" for v in violations)
+        if any(v.code == "PROMPT_INJECTION_DETECTED" for v in violations):
+            clean_title = "[withheld: input failed prompt-injection guardrail]"  # never propagate injected text
 
         if not pre_blocked:  # untrusted input passed guardrails -> call the LLM
             c_out = classify(client, raw, _leaves())

@@ -32,6 +32,11 @@ compliance:
     - firearm
     - ammunition
     - vape cartridge
+    # unsubstantiated health/regulatory claims are banned in every category
+    - cures
+    - "fda approved"
+    - "treats cancer"
+    - "miracle cure"
 
 paths:
   db: data/catalog.db       # env override: CATALOG_DB_PATH

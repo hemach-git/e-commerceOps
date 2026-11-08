@@ -75,7 +75,7 @@ config.yaml  .env.example  requirements.txt
 ```
 
 ## Results (measured)
-- **pytest:** 40 passed (normalisers, schema strictness, rules, guardrails, workflow, retry, FK enforcement, review gate, API).
+- **pytest:** 42 passed (normalisers, schema strictness, rules, guardrails, workflow, retry, FK enforcement, review gate, API).
 - **Evals (mock provider):** 26/26 cases passed. Routing 26/26, category 15/15, compliance recall 15/15, attributes 13/13, title hygiene 7/7, injection short-circuit 2/2. See [evals/results/latest.md](evals/results/latest.md).
 - **Seed batch (40 listings, mock):** 21 DRAFT, 19 QUARANTINED, 0 errors, ~1 s.
 

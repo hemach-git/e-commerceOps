@@ -11,7 +11,7 @@
 | Catalog Inspection API (FastAPI) | main | 8 | 5 | Done |
 | Streamlit UI (6 pages) | frontend | 40 | ~40 | Done (parallel) |
 | Guardrails, observability, analytics, diagnostics | main | 15 | 10 | Done |
-| pytest suite (40 tests) | main | 10 | 8 | Done |
+| pytest suite (42 tests) | main | 10 | 8 | Done |
 | Golden evals (26) + runner | main | 8 | 6 | Done |
 | Docs, diagrams, .docx, PPTX, GitHub push | main | 17 | 15 | Done |
 | Buffer | - | 5 | - | - |

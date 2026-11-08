@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-07T22:59:03",
+  "ts": "2026-11-07T23:23:40",
   "provider": "mock",
   "model": "mock-deterministic-v1",
   "total": 26,
@@ -51,7 +51,7 @@
       "rate": 1.0
     }
   },
-  "duration_s": 0.63,
+  "duration_s": 0.66,
   "failures": [],
   "cases": [
     {
@@ -308,7 +308,7 @@
         "status": "QUARANTINED",
         "category_id": null,
         "confidence": null,
-        "clean_title": "Leggings",
+        "clean_title": "[withheld: input failed prompt-injection guardrail]",
         "codes": [
           "PROMPT_INJECTION_DETECTED"
         ],
@@ -325,7 +325,7 @@
         "status": "QUARANTINED",
         "category_id": null,
         "confidence": null,
-        "clean_title": "Men's Running Shorts",
+        "clean_title": "[withheld: input failed prompt-injection guardrail]",
         "codes": [
           "PROMPT_INJECTION_DETECTED"
         ],
