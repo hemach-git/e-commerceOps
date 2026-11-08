@@ -1,0 +1,40 @@
+app:
+  name: "Marketplace Catalog Ingestion Engine"
+  version: "0.1.0"
+  data_label: "SYNTHETIC DEMO DATA"
+
+llm:
+  provider: mock            # mock | anthropic   (env override: LLM_PROVIDER)
+  model: claude-sonnet-5-5  # env override: LLM_MODEL
+  max_tokens: 1024
+  temperature: null         # null = provider default
+  max_retries: 2            # structural-validation retries per LLM call
+  timeout_s: 30
+
+pipeline:
+  confidence_threshold: 0.70
+  min_title_len: 10
+  max_title_len: 150
+  max_input_title_chars: 500
+  max_input_bullets_chars: 4000
+  max_price: 10000
+  batch_limit: 200
+
+compliance:
+  # Global prohibited terms (word-boundary, case-insensitive). Category-specific terms live in canonical_categories.prohibited_keywords.
+  global_prohibited_keywords:
+    - replica
+    - counterfeit
+    - knockoff
+    - knock-off
+    - "inspired by"
+    - "1:1 copy"
+    - firearm
+    - ammunition
+    - vape cartridge
+
+paths:
+  db: data/catalog.db       # env override: CATALOG_DB_PATH
+  log: logs/app.jsonl
+  eval_results: evals/results
+  run_snapshots: logs/run_snapshots
