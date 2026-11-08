@@ -1,0 +1,629 @@
+{
+  "ts": "2026-11-07T22:59:03",
+  "provider": "mock",
+  "model": "mock-deterministic-v1",
+  "total": 26,
+  "passed": 26,
+  "pass_rate": 1.0,
+  "by_type": {
+    "positive": {
+      "passed": 8,
+      "total": 8
+    },
+    "negative": {
+      "passed": 12,
+      "total": 12
+    },
+    "edge": {
+      "passed": 6,
+      "total": 6
+    }
+  },
+  "metrics": {
+    "routing": {
+      "passed": 26,
+      "total": 26,
+      "rate": 1.0
+    },
+    "category": {
+      "passed": 15,
+      "total": 15,
+      "rate": 1.0
+    },
+    "compliance_recall": {
+      "passed": 15,
+      "total": 15,
+      "rate": 1.0
+    },
+    "attributes": {
+      "passed": 13,
+      "total": 13,
+      "rate": 1.0
+    },
+    "title": {
+      "passed": 7,
+      "total": 7,
+      "rate": 1.0
+    },
+    "injection_short_circuit": {
+      "passed": 2,
+      "total": 2,
+      "rate": 1.0
+    }
+  },
+  "duration_s": 0.63,
+  "failures": [],
+  "cases": [
+    {
+      "id": "P01",
+      "type": "positive",
+      "desc": "Canonical messy apparel title",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "APP-SHORTS-M",
+        "confidence": 0.98,
+        "clean_title": "Men's Running Shorts, Dry-Fit, Pockets (Pack of 2)",
+        "codes": [],
+        "attributes": {
+          "size": [
+            "L"
+          ],
+          "colors": [
+            "Black",
+            "Navy"
+          ],
+          "gender": "Men"
+        }
+      }
+    },
+    {
+      "id": "P02",
+      "type": "positive",
+      "desc": "Women's leggings multi size",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "APP-LEGGINGS-W",
+        "confidence": 0.98,
+        "clean_title": "Women's Yoga Leggings",
+        "codes": [],
+        "attributes": {
+          "size": [
+            "XS",
+            "S",
+            "M"
+          ],
+          "colors": [
+            "Black",
+            "Wine"
+          ],
+          "gender": "Women",
+          "material": "Nylon"
+        }
+      }
+    },
+    {
+      "id": "P03",
+      "type": "positive",
+      "desc": "Unisex tee 3-pack",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "APP-TEES",
+        "confidence": 0.98,
+        "clean_title": "Unisex Crew Neck T-Shirt (Pack of 3)",
+        "codes": [],
+        "attributes": {
+          "size": [
+            "XL"
+          ],
+          "colors": [
+            "White"
+          ],
+          "gender": "Unisex",
+          "material": "Cotton"
+        }
+      }
+    },
+    {
+      "id": "P04",
+      "type": "positive",
+      "desc": "Running shoe US size",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "FTW-RUN",
+        "confidence": 0.98,
+        "clean_title": "Men's Running Shoes, Breathable",
+        "codes": [],
+        "attributes": {
+          "size": [
+            "11"
+          ],
+          "colors": [
+            "Gray",
+            "Orange"
+          ],
+          "gender": "Men"
+        }
+      }
+    },
+    {
+      "id": "P05",
+      "type": "positive",
+      "desc": "Cookware piece count",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "HOME-COOK",
+        "confidence": 0.98,
+        "clean_title": "Cookware Set, Induction Ready, Tri-Ply",
+        "codes": [],
+        "attributes": {
+          "material": "Stainless Steel",
+          "piece_count": 12
+        }
+      }
+    },
+    {
+      "id": "P06",
+      "type": "positive",
+      "desc": "Charger with connector + wattage",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "ELEC-CHRG",
+        "confidence": 0.98,
+        "clean_title": "Charger, Fast Charging",
+        "codes": [],
+        "attributes": {
+          "connector_type": "USB-C",
+          "wattage": 30,
+          "colors": [
+            "White"
+          ]
+        }
+      }
+    },
+    {
+      "id": "P07",
+      "type": "positive",
+      "desc": "Clean supplement",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "HLTH-SUPP",
+        "confidence": 0.98,
+        "clean_title": "Supplement",
+        "codes": [],
+        "attributes": {
+          "count": 120,
+          "form": "Capsule"
+        }
+      }
+    },
+    {
+      "id": "P08",
+      "type": "positive",
+      "desc": "Building toy with age",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "TOYS-BLD",
+        "confidence": 0.98,
+        "clean_title": "Building Set",
+        "codes": [],
+        "attributes": {
+          "piece_count": 800,
+          "min_age": 9
+        }
+      }
+    },
+    {
+      "id": "N01",
+      "type": "negative",
+      "desc": "Global prohibited: replica",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "APP-SHORTS-M",
+        "confidence": 0.98,
+        "clean_title": "Men's Basketball Shorts",
+        "codes": [
+          "PROHIBITED_KEYWORD"
+        ],
+        "attributes": {
+          "size": [
+            "M"
+          ],
+          "colors": [
+            "Red"
+          ],
+          "gender": "Men"
+        }
+      }
+    },
+    {
+      "id": "N02",
+      "type": "negative",
+      "desc": "Supplement health claims",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "HLTH-SUPP",
+        "confidence": 0.98,
+        "clean_title": "Supplement",
+        "codes": [
+          "PROHIBITED_KEYWORD"
+        ],
+        "attributes": {
+          "count": 60,
+          "form": "Capsule"
+        }
+      }
+    },
+    {
+      "id": "N03",
+      "type": "negative",
+      "desc": "Category-specific prohibited claim",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "APP-LEGGINGS-W",
+        "confidence": 0.98,
+        "clean_title": "Women's Leggings",
+        "codes": [
+          "PROHIBITED_KEYWORD"
+        ],
+        "attributes": {
+          "size": [
+            "M"
+          ],
+          "colors": [
+            "Black"
+          ],
+          "gender": "Women"
+        }
+      }
+    },
+    {
+      "id": "N04",
+      "type": "negative",
+      "desc": "Prompt injection in title",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": null,
+        "confidence": null,
+        "clean_title": "Leggings",
+        "codes": [
+          "PROMPT_INJECTION_DETECTED"
+        ],
+        "attributes": {}
+      }
+    },
+    {
+      "id": "N05",
+      "type": "negative",
+      "desc": "Prompt injection in bullets",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": null,
+        "confidence": null,
+        "clean_title": "Men's Running Shorts",
+        "codes": [
+          "PROMPT_INJECTION_DETECTED"
+        ],
+        "attributes": {}
+      }
+    },
+    {
+      "id": "N06",
+      "type": "negative",
+      "desc": "PII in listing",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": null,
+        "confidence": null,
+        "clean_title": "Kids Graphic Tee Call [phone] for Bulk",
+        "codes": [
+          "PII_IN_LISTING"
+        ],
+        "attributes": {}
+      }
+    },
+    {
+      "id": "N07",
+      "type": "negative",
+      "desc": "Missing required size",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "APP-SHORTS-M",
+        "confidence": 0.98,
+        "clean_title": "Men's Athletic Shorts, Quick Dry",
+        "codes": [
+          "MISSING_REQUIRED_ATTR"
+        ],
+        "attributes": {
+          "colors": [
+            "Black"
+          ],
+          "gender": "Men"
+        }
+      }
+    },
+    {
+      "id": "N08",
+      "type": "negative",
+      "desc": "Missing charger wattage",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "ELEC-CHRG",
+        "confidence": 0.98,
+        "clean_title": "Charging Cable, Braided",
+        "codes": [
+          "MISSING_REQUIRED_ATTR"
+        ],
+        "attributes": {
+          "connector_type": "Lightning",
+          "colors": [
+            "White"
+          ]
+        }
+      }
+    },
+    {
+      "id": "N09",
+      "type": "negative",
+      "desc": "Zero price",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "APP-TEES",
+        "confidence": 0.98,
+        "clean_title": "Unisex Crew Neck T-Shirt",
+        "codes": [
+          "INVALID_PRICE"
+        ],
+        "attributes": {
+          "size": [
+            "M"
+          ],
+          "colors": [
+            "Black"
+          ],
+          "gender": "Unisex"
+        }
+      }
+    },
+    {
+      "id": "N10",
+      "type": "negative",
+      "desc": "Unparseable price",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "APP-TEES",
+        "confidence": 0.98,
+        "clean_title": "Unisex Crew Neck T-Shirt",
+        "codes": [
+          "INVALID_PRICE"
+        ],
+        "attributes": {
+          "size": [
+            "M"
+          ],
+          "colors": [
+            "Black"
+          ],
+          "gender": "Unisex"
+        }
+      }
+    },
+    {
+      "id": "N11",
+      "type": "negative",
+      "desc": "Gender/category mismatch",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "APP-SHORTS-M",
+        "confidence": 0.98,
+        "clean_title": "Women's Running Shorts",
+        "codes": [
+          "INVALID_ATTR_VALUE"
+        ],
+        "attributes": {
+          "size": [
+            "S"
+          ],
+          "colors": [
+            "Pink"
+          ],
+          "gender": "Women"
+        }
+      }
+    },
+    {
+      "id": "N12",
+      "type": "negative",
+      "desc": "Weapons in toys",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "TOYS-BLD",
+        "confidence": 0.98,
+        "clean_title": "Building Set",
+        "codes": [
+          "PROHIBITED_KEYWORD"
+        ],
+        "attributes": {
+          "piece_count": 300,
+          "min_age": 10
+        }
+      }
+    },
+    {
+      "id": "E01",
+      "type": "edge",
+      "desc": "No category signal -> low confidence",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "APP-TEES",
+        "confidence": 0.2,
+        "clean_title": "T-Shirt",
+        "codes": [
+          "LOW_CONFIDENCE",
+          "MISSING_REQUIRED_ATTR",
+          "TITLE_TOO_SHORT"
+        ],
+        "attributes": {}
+      }
+    },
+    {
+      "id": "E02",
+      "type": "edge",
+      "desc": "ALL CAPS shouting title still drafts, title fixed",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "APP-SHORTS-M",
+        "confidence": 0.98,
+        "clean_title": "Peakform Men's Basketball Shorts, Breathable",
+        "codes": [
+          "SHOUTING_TITLE"
+        ],
+        "attributes": {
+          "size": [
+            "L",
+            "XL"
+          ],
+          "colors": [
+            "Black"
+          ],
+          "gender": "Men",
+          "material": "Mesh"
+        }
+      }
+    },
+    {
+      "id": "E03",
+      "type": "edge",
+      "desc": "Emoji + SEO tail",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "APP-LEGGINGS-W",
+        "confidence": 0.98,
+        "clean_title": "Women's Fleece Leggings, Fleece Lined",
+        "codes": [],
+        "attributes": {
+          "size": [
+            "M"
+          ],
+          "colors": [
+            "Heather Gray"
+          ],
+          "gender": "Women",
+          "material": "Fleece"
+        }
+      }
+    },
+    {
+      "id": "E04",
+      "type": "edge",
+      "desc": "Word-boundary: 'secure' must not trip 'cure'",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "HLTH-SUPP",
+        "confidence": 0.98,
+        "clean_title": "Supplement",
+        "codes": [],
+        "attributes": {
+          "count": 90,
+          "form": "Gummy"
+        }
+      }
+    },
+    {
+      "id": "E05",
+      "type": "edge",
+      "desc": "European decimal price + USD",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "DRAFT",
+        "category_id": "FTW-RUN",
+        "confidence": 0.98,
+        "clean_title": "Women's Trail Running Shoes, Waterproof",
+        "codes": [],
+        "attributes": {
+          "size": [
+            "8.5"
+          ],
+          "colors": [
+            "Teal"
+          ],
+          "gender": "Women"
+        }
+      }
+    },
+    {
+      "id": "E06",
+      "type": "edge",
+      "desc": "Out-of-range shoe size",
+      "passed": true,
+      "failed_checks": [],
+      "result": {
+        "status": "QUARANTINED",
+        "category_id": "FTW-RUN",
+        "confidence": 0.98,
+        "clean_title": "Men's Running Shoes, Lightweight",
+        "codes": [
+          "INVALID_ATTR_VALUE"
+        ],
+        "attributes": {
+          "size": [
+            "22"
+          ],
+          "colors": [
+            "Black"
+          ],
+          "gender": "Men"
+        }
+      }
+    }
+  ],
+  "data_label": "SYNTHETIC golden set"
+}
