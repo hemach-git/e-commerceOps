@@ -2,7 +2,7 @@
 
 You are building the **Streamlit frontend only** for: an AI-powered ingestion engine that takes messy third-party seller listings, cleans titles/variations, classifies them into the canonical marketplace taxonomy, validates required attributes, enforces deterministic compliance rules, and routes each listing to **Draft Catalog** (awaiting human approval → Live Catalog) or **Quarantine** (with reason codes).
 
-**Repo/folder:** `C:\Users\Chepuri\AI-Prototypes\e-commerceOps` — same folder as the main session. **Do NOT run git commands**; the main session commits.
+**Repo/folder:** `C:\Users\Chepuri\AI-PlayGround\e-commerceOps` — same folder as the main session. **Do NOT run git commands**; the main session commits.
 **Python:** use the project venv: `.venv\Scripts\python -m streamlit run app/main.py` (deps already installed: streamlit, pandas, plotly).
 
 **You own ONLY:** `app/main.py`, `app/pages/*`, `app/ui/*`, `.streamlit/config.toml`.

@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-07T23:23:40",
+  "ts": "2026-11-08T11:51:42",
   "provider": "mock",
   "model": "mock-deterministic-v1",
   "total": 26,
@@ -51,7 +51,7 @@
       "rate": 1.0
     }
   },
-  "duration_s": 0.66,
+  "duration_s": 0.76,
   "failures": [],
   "cases": [
     {
