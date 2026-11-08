@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Inches, Pt
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
@@ -29,15 +29,23 @@ def convert(md_path: Path) -> Path:
     doc.styles["Normal"].font.size = Pt(10.5)
     lines = md_path.read_text(encoding="utf-8").splitlines()
     i = 0
+    n_mermaid = 0
     while i < len(lines):
         line = lines[i].rstrip()
         if line.startswith("```"):
+            lang = line[3:].strip()
             i += 1
             code = []
             while i < len(lines) and not lines[i].startswith("```"):
                 code.append(lines[i]); i += 1
-            p = doc.add_paragraph()
-            r = p.add_run("\n".join(code)); r.font.name = "Consolas"; r.font.size = Pt(8.5)
+            if lang == "mermaid":
+                n_mermaid += 1
+            img = md_path.parent / "img" / f"{md_path.stem}_{n_mermaid}.png"
+            if lang == "mermaid" and img.exists():  # rendered by scripts/render_mermaid.py
+                doc.add_picture(str(img), width=Inches(6.3))
+            else:
+                p = doc.add_paragraph()
+                r = p.add_run("\n".join(code)); r.font.name = "Consolas"; r.font.size = Pt(8.5)
         elif line.startswith("|"):
             rows = []
             while i < len(lines) and lines[i].startswith("|"):
@@ -73,10 +81,11 @@ def convert(md_path: Path) -> Path:
 
 if __name__ == "__main__":
     ok = True
-    for name in ("scope.md", "estimates_risks.md"):
+    for name in sys.argv[1:] or ("scope.md", "estimates_risks.md", "architecture.md"):
         out = convert(DOCS / name)
         d = Document(out)  # re-open to verify
         size = out.stat().st_size
-        print(f"{out.name}: {size} bytes, {len(d.paragraphs)} paragraphs, {len(d.tables)} tables")
+        print(f"{out.name}: {size} bytes, {len(d.paragraphs)} paragraphs, {len(d.tables)} tables, "
+              f"{len(d.inline_shapes)} images")
         ok &= size > 0 and len(d.paragraphs) > 0
     sys.exit(0 if ok else 1)

@@ -15,7 +15,7 @@ flowchart LR
     WF --> EX[extractor.py<br/>strict schema]
     CL --> SV[structured.py<br/>JSON -> Pydantic -> retry]
     EX --> SV
-    SV --> LLM[llm.py<br/>anthropic | mock]
+    SV --> LLM["llm.py<br/>anthropic or mock"]
     WF --> NR[normalize.py<br/>sizes, colours, packs, titles]
     WF --> RU[rules.py<br/>attributes + compliance + routing]
     WF --> DB[(SQLite<br/>FK enforced)]
