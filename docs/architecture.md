@@ -5,88 +5,110 @@
 
 ## 1. System architecture
 ```mermaid
-flowchart LR
-    U[Catalog Ops / Reviewer] --> UI[Streamlit UI<br/>Ingest - Review - Catalog - Analytics - Diagnostics]
-    EXT[Integrations / Engineers] --> API[FastAPI<br/>Catalog Inspection API]
-    UI --> WF[services/workflow.py<br/>orchestration]
-    API --> WF
-    WF --> GR[guardrails.py<br/>length, injection, PII, delimiting]
-    WF --> CL[classifier.py<br/>closed-enum taxonomy]
-    WF --> EX[extractor.py<br/>strict schema]
-    CL --> SV[structured.py<br/>JSON -> Pydantic -> retry]
-    EX --> SV
-    SV --> LLM["llm.py<br/>anthropic or mock"]
-    WF --> NR[normalize.py<br/>sizes, colours, packs, titles]
-    WF --> RU[rules.py<br/>attributes + compliance + routing]
-    WF --> DB[(SQLite<br/>FK enforced)]
-    WF --> AU[audit.py]
-    WF --> OB[observability/logging.py<br/>JSON logs + request_log]
-    UI --> AN[analytics.py / diagnostics.py]
-    AN --> DB
+flowchart TB
+    subgraph USERS["Users"]
+        direction LR
+        U["Catalog Ops / Reviewer"]
+        EXT["Integrations / Engineers"]
+    end
+    subgraph PRES["Presentation layer"]
+        direction LR
+        UI["Streamlit UI<br/>Ingest, Review, Catalog,<br/>Analytics, Diagnostics"]
+        API["FastAPI<br/>Catalog Inspection API"]
+    end
+    WF["services/workflow.py<br/>orchestration"]
+    subgraph AI["AI steps: LLM proposes"]
+        direction TB
+        CL["classifier.py<br/>closed-enum taxonomy"]
+        EX["extractor.py<br/>strict schema"]
+        SV["structured.py<br/>JSON, Pydantic, retry"]
+        LLM["llm.py<br/>anthropic or mock"]
+        CL --> SV
+        EX --> SV
+        SV --> LLM
+    end
+    subgraph DET["Deterministic Python: decides"]
+        direction TB
+        GR["guardrails.py<br/>length, injection, PII"]
+        NR["normalize.py<br/>sizes, colours,<br/>packs, titles"]
+        RU["rules.py<br/>attributes, compliance,<br/>routing"]
+        GR ~~~ NR ~~~ RU
+    end
+    subgraph DATA["Data, governance, ops"]
+        direction TB
+        AN["analytics.py<br/>diagnostics.py"]
+        DB[("SQLite<br/>FK enforced")]
+        AU["audit.py<br/>audit trail"]
+        OB["logging.py<br/>JSON logs"]
+        AN --> DB
+        DB ~~~ AU ~~~ OB
+    end
+    USERS --> PRES
+    PRES --> WF
+    WF --> AI
+    WF --> DET
+    WF --> DATA
 ```
 
 ## 2. Data flow
 ```mermaid
 flowchart TD
-    A[incoming_supplier_feeds<br/>raw, untrusted] --> B{Guardrails<br/>length / injection / PII}
-    B -- BLOCK --> Q[(Quarantine)]
-    B -- pass --> C[LLM classify<br/>category enum]
-    C --> C1{Pydantic + in-taxonomy?}
-    C1 -- invalid x3 --> Q
-    C1 -- valid --> D[LLM extract<br/>ExtractedListing schema]
-    D --> D1{Pydantic extra=forbid?}
-    D1 -- invalid x3 --> Q
-    D1 -- valid --> E[Deterministic normalise<br/>size/colour/pack/title]
-    E --> F[Dynamic per-category attribute model<br/>from required_attributes_json]
-    F --> G[Compliance rules<br/>prohibited terms, price, confidence]
-    G --> H{Any BLOCK?}
+    A["Supplier feed row<br/>raw, untrusted"] --> B{{"Guardrails:<br/>length, injection, PII"}}
+    B -- block --> Q[("Quarantine")]
+    B -- pass --> C["LLM classify<br/>closed category list"]
+    C --> C1{{"Valid JSON and<br/>in taxonomy?"}}
+    C1 -- "no, after 3 tries" --> Q
+    C1 -- yes --> D["LLM extract<br/>strict schema"]
+    D --> D1{{"Pydantic valid?"}}
+    D1 -- "no, after 3 tries" --> Q
+    D1 -- yes --> E["Normalise: size, colour,<br/>pack, title template"]
+    E --> F["Check required<br/>attributes"]
+    F --> G["Compliance rules:<br/>terms, price, confidence"]
+    G --> H{{"Any BLOCK?"}}
     H -- yes --> Q
-    H -- no --> DR[(Draft catalog)]
-    DR --> R{Human review}
-    R -- approve + publish gate --> L[(Live catalog)]
-    R -- reject --> X[(Rejected)]
-    Q --> R2{Human review}
-    R2 -- reject --> X
-    L --> AN[Analytics / API]
-    Q --> AN
+    H -- no --> DR[("Draft catalog")]
+    DR --> R{{"Human review"}}
+    Q --> R
+    R -- "approve (drafts only)" --> L[("Live catalog")]
+    R -- reject --> X[("Rejected")]
 ```
 
 ## 3. Process sequence
 ```mermaid
 sequenceDiagram
     actor Ops as Catalog Ops
-    participant UI as Streamlit UI
+    participant UI as UI
     participant WF as Workflow
     participant GR as Guardrails
-    participant LLM as LLM (anthropic|mock)
-    participant RU as Rules (Python)
+    participant LLM as LLM
+    participant RU as Rules
     participant DB as SQLite
     participant AU as Audit
     Ops->>UI: Run batch
     UI->>WF: run_batch()
-    WF->>DB: insert pipeline_runs (+config snapshot)
-    loop each pending feed
-        WF->>GR: check_input(raw)
-        alt injection / PII / too long
-            GR-->>WF: BLOCK violations (no LLM call)
+    WF->>DB: save run + config snapshot
+    loop each pending listing
+        WF->>GR: check input
+        alt injection, PII or too long
+            GR-->>WF: BLOCK (no LLM call)
         else clean
-            WF->>LLM: classify (closed enum, delimited input)
-            LLM-->>WF: raw JSON
-            WF->>WF: Pydantic validate, retry with error (max 2)
-            WF->>LLM: extract (strict schema)
-            LLM-->>WF: raw JSON
-            WF->>WF: Pydantic validate, retry with error (max 2)
-            WF->>RU: normalise + validate attributes + compliance
+            WF->>LLM: classify
+            LLM-->>WF: JSON
+            Note over WF: validate, retry max 2
+            WF->>LLM: extract
+            LLM-->>WF: JSON
+            Note over WF: validate, retry max 2
+            WF->>RU: normalise + check
         end
-        RU-->>WF: violations + route (DRAFT|QUARANTINED)
-        WF->>DB: listing, variations, violations (one transaction)
-        WF->>AU: PIPELINE_ROUTE (request_id, model, reasons)
+        RU-->>WF: DRAFT or QUARANTINED
+        WF->>DB: save listing
+        WF->>AU: log route decision
     end
     Ops->>UI: Approve draft
-    UI->>WF: review_decision(APPROVE, reviewer)
-    WF->>WF: publish gate (DRAFT, no BLOCKs, price>0)
-    WF->>DB: live_catalog insert, status=PUBLISHED
-    WF->>AU: HUMAN_REVIEW (who, when, decision)
+    UI->>WF: review_decision()
+    Note over WF: publish gate
+    WF->>DB: add to live catalog
+    WF->>AU: log reviewer decision
 ```
 
 ## Key decisions

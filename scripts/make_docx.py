@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from docx import Document
+from docx.enum.section import WD_ORIENT, WD_SECTION
 from docx.shared import Inches, Pt
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -23,10 +24,42 @@ def add_inline(par, text: str) -> None:
             par.add_run(part)
 
 
+def _png_size(path: Path) -> tuple[int, int]:
+    import struct
+    with open(path, "rb") as f:
+        head = f.read(24)
+    return struct.unpack(">II", head[16:24])
+
+
+def _new_section(doc, landscape: bool) -> None:
+    prev = doc.sections[-1]
+    sec = doc.add_section(WD_SECTION.NEW_PAGE)
+    w, h = sorted((prev.page_width, prev.page_height))
+    sec.orientation = WD_ORIENT.LANDSCAPE if landscape else WD_ORIENT.PORTRAIT
+    sec.page_width, sec.page_height = (h, w) if landscape else (w, h)
+
+
+def add_diagram(doc, img: Path) -> None:
+    """Fit a rendered diagram as large as possible; wide diagrams get their own landscape page."""
+    w, h = _png_size(img)
+    wide = w / h > 1.25
+    if wide:
+        _new_section(doc, landscape=True)
+    sec = doc.sections[-1]
+    max_w = sec.page_width - sec.left_margin - sec.right_margin
+    max_h = sec.page_height - sec.top_margin - sec.bottom_margin - Inches(0.6)
+    scale = min(max_w / w, max_h / h)
+    doc.add_picture(str(img), width=int(w * scale), height=int(h * scale))
+    if wide:
+        _new_section(doc, landscape=False)
+
+
 def convert(md_path: Path) -> Path:
     doc = Document()
     doc.styles["Normal"].font.name = "Calibri"
     doc.styles["Normal"].font.size = Pt(10.5)
+    for sec in doc.sections:  # narrower margins -> larger diagrams
+        sec.left_margin = sec.right_margin = sec.top_margin = sec.bottom_margin = Inches(0.75)
     lines = md_path.read_text(encoding="utf-8").splitlines()
     i = 0
     n_mermaid = 0
@@ -42,7 +75,7 @@ def convert(md_path: Path) -> Path:
                 n_mermaid += 1
             img = md_path.parent / "img" / f"{md_path.stem}_{n_mermaid}.png"
             if lang == "mermaid" and img.exists():  # rendered by scripts/render_mermaid.py
-                doc.add_picture(str(img), width=Inches(6.3))
+                add_diagram(doc, img)
             else:
                 p = doc.add_paragraph()
                 r = p.add_run("\n".join(code)); r.font.name = "Consolas"; r.font.size = Pt(8.5)

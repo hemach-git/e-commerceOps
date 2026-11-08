@@ -28,18 +28,20 @@ def render(md_path: Path) -> list[Path]:
     outs = []
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome", headless=True)
-        page = browser.new_page(device_scale_factor=2, viewport={"width": 1400, "height": 900})
+        page = browser.new_page(device_scale_factor=3, viewport={"width": 1400, "height": 900})
         page.set_content(f"<html><body style='background:white;margin:0'><div id='c'></div>"
                          f"<script src='{MERMAID_JS}'></script></body></html>")
         page.wait_for_function("window.mermaid !== undefined", timeout=30000)
-        page.evaluate("mermaid.initialize({startOnLoad:false, theme:'default', securityLevel:'strict'})")
+        page.evaluate("mermaid.initialize({startOnLoad:false, theme:'default', securityLevel:'strict', themeVariables:{fontSize:'18px'}, flowchart:{useMaxWidth:false, nodeSpacing:30, rankSpacing:35}, sequence:{useMaxWidth:false, mirrorActors:false, actorMargin:30, messageMargin:28, boxMargin:6, messageFontSize:16, actorFontSize:16, noteFontSize:15}})")
         for i, src in enumerate(blocks, 1):
             page.evaluate(
                 """async (src) => { const {svg} = await mermaid.render('d' + Date.now(), src);
                    document.getElementById('c').innerHTML = '<div id="w" style="display:inline-block;padding:16px;background:white">' + svg + '</div>'; }""",
                 src)
             target = out_dir / f"{md_path.stem}_{i}.png"
-            page.locator("#w").screenshot(path=str(target))
+            tmp = target.with_suffix(".tmp.png")
+            page.locator("#w").screenshot(path=str(tmp))
+            tmp.replace(target)  # atomic swap; fails clearly if the PNG is open in another app
             outs.append(target)
         browser.close()
     return outs
