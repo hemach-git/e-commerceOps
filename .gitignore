@@ -7,3 +7,4 @@ data/*.db-*
 logs/
 .pytest_cache/
 evals/results/tmp_*
+~$*
