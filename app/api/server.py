@@ -1,6 +1,6 @@
 """Catalog Inspection API (FastAPI). Read-mostly; reuses the same service layer as the UI.
 
-Run:  python -m uvicorn app.api.server:app --port 8000      Docs: http://localhost:8000/docs
+Run:  python -m uvicorn app.api.server:app --port 8861      Docs: http://localhost:8861/docs
 """
 from __future__ import annotations
 

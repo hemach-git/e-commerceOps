@@ -15,7 +15,7 @@ copy .env.example .env            # optional: set LLM_PROVIDER=anthropic + ANTHR
 python -m app.data.seed_synthetic --reset
 
 streamlit run app/main.py                         # UI      -> http://localhost:8501
-python -m uvicorn app.api.server:app --port 8000  # API     -> http://localhost:8000/docs
+python -m uvicorn app.api.server:app --port 8861  # API     -> http://localhost:8861/docs
 pytest -q                                         # tests
 python -m evals.run                               # evals   -> evals/results/latest.md
 python scripts/make_docx.py && python scripts/make_pptx.py
