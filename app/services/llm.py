@@ -1,5 +1,5 @@
-"""Configurable LLM client. Providers: `anthropic` (tool-use structured output) and `mock`
-(deterministic, offline; used for tests/evals/demo fallback).
+"""Configurable LLM client. Providers: `anthropic` (tool-use structured output), `ollama` (local model,
+JSON-schema output) and `mock` (deterministic, offline; used for tests/evals/demo fallback).
 
 The client returns RAW model JSON text. It never decides anything: callers validate with Pydantic."""
 from __future__ import annotations
@@ -10,6 +10,8 @@ import os
 import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
+
+import httpx
 
 from app.config import get_config
 from app.services import normalize as N
@@ -42,6 +44,15 @@ class LLMClient:
                 raise LLMError("ANTHROPIC_API_KEY not set; set it in .env or use LLM_PROVIDER=mock")
             import anthropic
             self._client = anthropic.Anthropic(timeout=cfg.get("timeout_s", 30), max_retries=2)
+        elif self.provider == "ollama":
+            o = cfg["ollama"]
+            self.model, self._url = model or o["model"], o["url"].rstrip("/")
+            try:
+                tags = httpx.get(f"{self._url}/api/tags", timeout=3).raise_for_status().json()
+            except (httpx.HTTPError, ValueError) as e:
+                raise LLMError(f"Ollama not reachable at {self._url}: {type(e).__name__}") from e
+            if self.model not in [m.get("name") for m in tags.get("models", [])]:
+                raise LLMError(f"Ollama model {self.model!r} is not installed; run: ollama pull {self.model}")
         else:
             raise LLMError(f"unknown LLM provider {self.provider!r}")
 
@@ -49,6 +60,8 @@ class LLMClient:
                    mock_ctx: Optional[dict] = None) -> LLMResponse:
         if self.provider == "mock":
             return _mock(task, attempt, mock_ctx or {})
+        if self.provider == "ollama":
+            return self._ollama(system, user, schema)
         kwargs: dict[str, Any] = dict(
             model=self.model, max_tokens=self.cfg.get("max_tokens", 1024), system=system,
             messages=[{"role": "user", "content": user}],
@@ -66,6 +79,21 @@ class LLMClient:
             getattr(b, "text", "") for b in resp.content)
         return LLMResponse(text=text, provider="anthropic", model=self.model,
                            tokens_in=resp.usage.input_tokens, tokens_out=resp.usage.output_tokens)
+
+    def _ollama(self, system: str, user: str, schema: dict) -> LLMResponse:
+        o = self.cfg["ollama"]
+        body = {"model": self.model, "stream": False, "format": schema,
+                "options": {"temperature": o.get("temperature", 0.0)},
+                "messages": [{"role": "system",
+                              "content": f"{system}\nReply with JSON matching this schema: {json.dumps(schema)}"},
+                             {"role": "user", "content": user}]}
+        try:
+            r = httpx.post(f"{self._url}/api/chat", json=body, timeout=o.get("timeout_s", 180))
+            data = r.raise_for_status().json()
+        except (httpx.HTTPError, ValueError) as e:
+            raise LLMError(f"Ollama call failed: {type(e).__name__}: {e}") from e
+        return LLMResponse(text=data.get("message", {}).get("content", ""), provider="ollama", model=self.model,
+                           tokens_in=data.get("prompt_eval_count") or 0, tokens_out=data.get("eval_count") or 0)
 
 
 # ----------------------------------------------------------------------------------------------
@@ -176,7 +204,7 @@ def _mock_extract(raw, text: str, category_id: Optional[str]) -> dict:
             attrs["piece_count"] = pc
     if category_id == "ELEC-CHRG":
         for k, v in N.CONNECTOR_MAP.items():
-            if k in text:
+            if _kw_hit(text, k):
                 attrs["connector_type"] = v
                 break
         if w := re.search(r"\b(\d{1,3})\s*w\b", text):

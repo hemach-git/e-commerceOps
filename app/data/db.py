@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS incoming_supplier_feeds (
     received_at    TEXT NOT NULL,
     status         TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','PROCESSED')),
     is_synthetic   INTEGER NOT NULL DEFAULT 1 CHECK (is_synthetic IN (0,1)),
+    declared_sku   TEXT,   -- what the seller sent, when it differs from the unique supplier_sku key
     UNIQUE (supplier_id, supplier_sku)
 );
 
@@ -100,6 +101,23 @@ CREATE TABLE IF NOT EXISTS live_catalog (
     published_by    TEXT NOT NULL
 );
 
+-- Marketplace SKUs: created only when a human approves a listing
+CREATE TABLE IF NOT EXISTS catalog_skus (
+    sku           TEXT PRIMARY KEY,
+    listing_id    INTEGER NOT NULL REFERENCES processed_listings(listing_id),
+    feed_id       INTEGER NOT NULL REFERENCES incoming_supplier_feeds(feed_id),
+    variant_index INTEGER NOT NULL CHECK (variant_index >= 1),
+    size          TEXT,
+    color         TEXT,
+    supplier_id   TEXT NOT NULL,
+    supplier_sku  TEXT NOT NULL,
+    category_id   TEXT NOT NULL REFERENCES canonical_categories(category_id),
+    title         TEXT NOT NULL,
+    approved_by   TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    UNIQUE (listing_id, variant_index)
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
     audit_id     INTEGER PRIMARY KEY AUTOINCREMENT,
     ts           TEXT NOT NULL,
@@ -159,6 +177,9 @@ def tx() -> Iterator[sqlite3.Connection]:
 def init_schema() -> None:
     with tx() as c:
         c.executescript(SCHEMA)
+        columns = {r["name"] for r in c.execute("PRAGMA table_info(incoming_supplier_feeds)")}
+        if "declared_sku" not in columns:  # upgrade a database created before seller-SKU rules
+            c.execute("ALTER TABLE incoming_supplier_feeds ADD COLUMN declared_sku TEXT")
 
 
 def query(sql: str, params: tuple | list = ()) -> list[dict]:

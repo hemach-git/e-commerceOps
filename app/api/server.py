@@ -94,6 +94,14 @@ def catalog() -> list[dict]:
     return workflow.list_live_catalog()
 
 
+@app.get("/skus/{sku}")
+def marketplace_sku(sku: str) -> dict:
+    row = workflow.get_by_sku(sku)
+    if not row:
+        raise HTTPException(404, f"marketplace SKU {sku} not found")
+    return row
+
+
 @app.get("/feeds/{feed_id}")
 def feed(feed_id: int) -> dict:
     rows = [f for f in workflow.list_feeds() if f["feed_id"] == feed_id]

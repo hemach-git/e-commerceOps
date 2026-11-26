@@ -22,18 +22,19 @@ frame["category"] = frame["category_id"].map(lambda c: f"{cat_names.get(c, c)} (
 f1, f2 = st.columns([2, 2])
 options = sorted(frame["category"].dropna().unique().tolist())
 chosen = f1.multiselect("Filter by category", options, key="cat_filter")
-query = f2.text_input("Search title", key="cat_search")
+query = f2.text_input("Search title or marketplace SKU", key="cat_search")
 if chosen:
     frame = frame[frame["category"].isin(chosen)]
 if query:
-    frame = frame[frame["title"].fillna("").str.contains(query, case=False, regex=False)]
+    sku_text = frame["marketplace_skus"].map(" ".join)
+    frame = frame[(frame["title"].fillna("") + " " + sku_text).str.contains(query, case=False, regex=False)]
 
 m = st.columns(3)
 m[0].metric("Published listings", len(frame))
 m[1].metric("Categories", frame["category_id"].nunique())
 m[2].metric("Avg price", common.num(frame["price"].mean() if "price" in frame and len(frame) else None, "${:,.2f}"))
 
-cols = ["catalog_id", "listing_id", "title", "category", "price", "attributes", "published_at", "published_by"]
+cols = ["catalog_id", "listing_id", "marketplace_skus", "title", "category", "price", "attributes", "published_at", "published_by"]
 show = common.stringify_complex(frame[[c for c in cols if c in frame.columns]])
 st.dataframe(show, hide_index=True, width="stretch",
              column_config={"price": st.column_config.NumberColumn("price", format="$%.2f")})

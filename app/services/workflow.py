@@ -16,7 +16,7 @@ from app.data.seed_synthetic import seed
 from app.models.schemas import (BatchSummary, PipelineResult, RawListing, ReviewDecision, RuleViolation,
                                 Variation, utcnow)
 from app.observability.logging import log_event, new_request_id, track
-from app.services import audit, normalize as N, rules
+from app.services import audit, normalize as N, rules, sku as skus
 from app.services.classifier import classify
 from app.services.extractor import extract
 from app.services.guardrails import check_input, mask_sensitive
@@ -102,12 +102,14 @@ def process_listing(feed_id: int, actor: str = "system", run_id: Optional[str] =
 
     with track("process_listing", rid, feed_id=feed_id, provider=client.provider) as t:
         violations: list[RuleViolation] = check_input(raw)
+        violations += rules.check_seller_sku(feed["supplier_sku"], feed["declared_sku"])
         price = N.parse_price(raw.raw_price)
         category, cls, ext, attrs, variations = None, None, None, {}, []
         llm_raw: dict = {}
         cls_attempts = ext_attempts = 0
         clean_title = N.smart_title(mask_sensitive(N.strip_title_noise(raw.raw_title)))[:150]
-        pre_blocked = any(v.severity == "BLOCK" for v in violations)
+        # seller-SKU problems still get classified and extracted, so the reviewer sees the whole picture
+        pre_blocked = any(v.severity == "BLOCK" and v.field != "supplier_sku" for v in violations)
         if any(v.code == "PROMPT_INJECTION_DETECTED" for v in violations):
             clean_title = "[withheld: input failed prompt-injection guardrail]"  # never propagate injected text
 
@@ -134,6 +136,8 @@ def process_listing(feed_id: int, actor: str = "system", run_id: Optional[str] =
                     ext = e_out.value
                     attrs = rules.assemble_attributes(ext, category)
                     violations += rules.validate_attributes(attrs, category)
+                    violations += rules.check_grounding(attrs, " ".join(
+                        [raw.raw_title, raw.raw_bullets, raw.raw_size_tag, raw.raw_color_tag]))
                     max_len = get_config()["pipeline"]["max_title_len"]
                     full = N.build_title(ext.brand, ext.gender, ext.product_type, ext.key_features,
                                          ext.pack_count, max_len=10_000)
@@ -233,15 +237,19 @@ def submit_listing(supplier_id: str, supplier_sku: str, raw_title: str, raw_bull
     except ValidationError as e:
         raise ValueError("Invalid listing input: " + "; ".join(
             f"{'.'.join(map(str, x['loc']))}: {x['msg']}" for x in e.errors())) from e
-    sku = raw.supplier_sku
-    if db.query_one("SELECT 1 FROM incoming_supplier_feeds WHERE supplier_id=? AND supplier_sku=?", (raw.supplier_id, sku)):
-        sku = f"{sku}-{uuid.uuid4().hex[:4]}"
+    sku, declared = raw.supplier_sku, None
+    taken = db.query_one("SELECT 1 FROM incoming_supplier_feeds WHERE supplier_id=? AND supplier_sku=?",
+                         (raw.supplier_id, sku))
+    if not sku or taken:  # keep the row unique; remember what was sent so the rule can quarantine it
+        declared = sku
+        sku = f"{sku[:50] or 'NO-SKU'}-{uuid.uuid4().hex[:8]}"
     with db.tx() as c:
         cur = c.execute(
             "INSERT INTO incoming_supplier_feeds(supplier_id,supplier_sku,raw_title,raw_bullets,raw_size_tag,"
-            "raw_color_tag,raw_price,received_at,status,is_synthetic) VALUES (?,?,?,?,?,?,?,?,'PENDING',1)",
+            "raw_color_tag,raw_price,received_at,status,is_synthetic,declared_sku)"
+            " VALUES (?,?,?,?,?,?,?,?,'PENDING',1,?)",
             (raw.supplier_id, sku, raw.raw_title, raw.raw_bullets, raw.raw_size_tag, raw.raw_color_tag,
-             raw.raw_price, utcnow()))
+             raw.raw_price, utcnow(), declared))
         fid = cur.lastrowid
     return process_listing(fid, actor=actor)
 
@@ -300,6 +308,8 @@ def get_listing_detail(listing_id: int) -> Optional[dict]:
         "violations": db.query("SELECT code,severity,field,detail FROM rule_violations WHERE listing_id=? ORDER BY violation_id", (listing_id,)),
         "audit": audit.list_audit(limit=50, entity_id=str(listing_id)),
         "live": db.query_one("SELECT * FROM live_catalog WHERE listing_id=?", (listing_id,)),
+        "marketplace_skus": db.query("SELECT sku,variant_index,size,color FROM catalog_skus WHERE listing_id=?"
+                                     " ORDER BY variant_index", (listing_id,)),
     }
 
 
@@ -307,7 +317,14 @@ def list_live_catalog() -> list[dict]:
     rows = db.query("SELECT * FROM live_catalog ORDER BY catalog_id DESC")
     for r in rows:
         r["attributes"] = json.loads(r.pop("attributes_json") or "{}")
+        r["marketplace_skus"] = [s["sku"] for s in db.query(
+            "SELECT sku FROM catalog_skus WHERE listing_id=? ORDER BY variant_index", (r["listing_id"],))]
     return rows
+
+
+def get_by_sku(sku: str) -> Optional[dict]:
+    """Look up a live item by its marketplace SKU (case-insensitive)."""
+    return db.query_one("SELECT * FROM catalog_skus WHERE sku=? COLLATE NOCASE", (sku.strip(),))
 
 
 # ------------------------------------------------------------------ human review
@@ -336,6 +353,7 @@ def review_decision(listing_id: int, decision: Literal["APPROVE", "REJECT"], rev
                         "message": f"Cannot reject a listing in status {row['status']}."}
             new_status = "REJECTED"
         now = utcnow()
+        created: list[str] = []
         with db.tx() as c:
             c.execute("UPDATE processed_listings SET status=?, updated_at=? WHERE listing_id=?",
                       (new_status, now, d.listing_id))
@@ -343,9 +361,12 @@ def review_decision(listing_id: int, decision: Literal["APPROVE", "REJECT"], rev
                 c.execute("INSERT INTO live_catalog(listing_id,category_id,title,price,attributes_json,published_at,published_by)"
                           " VALUES (?,?,?,?,?,?,?)", (d.listing_id, row["category_id"], row["clean_title"], row["price"],
                                                       row["attributes_json"], now, d.reviewer))
+                created = skus.create_for_listing(c, row, approver=d.reviewer, created_at=now)
             audit.record(c, actor=d.reviewer, action="HUMAN_REVIEW", entity_type="listing", entity_id=d.listing_id,
                          decision=d.decision, model=None, request_id=rid,
                          details={"note": d.note, "from_status": row["status"], "to_status": new_status,
-                                  "pipeline_request_id": row["request_id"]})
+                                  "pipeline_request_id": row["request_id"], "marketplace_skus": created})
     msg = "Published to live catalog." if new_status == "PUBLISHED" else "Listing rejected."
-    return {"ok": True, "status": new_status, "message": msg, "request_id": rid}
+    if created:
+        msg += f" Marketplace SKU(s): {', '.join(created)}"
+    return {"ok": True, "status": new_status, "message": msg, "request_id": rid, "marketplace_skus": created}

@@ -30,7 +30,7 @@ class RawListing(BaseModel):
 
     feed_id: Optional[int] = None
     supplier_id: str = Field(min_length=1, max_length=40)
-    supplier_sku: str = Field(min_length=1, max_length=60)
+    supplier_sku: str = Field(default="", max_length=60)  # missing is a rule violation, not a crash
     raw_title: str = Field(min_length=1, max_length=2000)  # hard cap; guardrails apply stricter limit
     raw_bullets: str = Field(default="", max_length=10000)
     raw_size_tag: str = Field(default="", max_length=200)

@@ -25,7 +25,66 @@ REASON_CODES = {
     "TITLE_TOO_SHORT": "Clean title too short to be meaningful",
     "TITLE_TRUNCATED": "Clean title exceeded max length and was truncated",
     "SHOUTING_TITLE": "Raw title was mostly upper-case (auto-fixed)",
+    "MISSING_SELLER_SKU": "The seller sent no SKU",
+    "INVALID_SELLER_SKU": "Seller SKU must be 2-40 letters, digits, . _ -",
+    "DUPLICATE_SELLER_SKU": "This supplier already used the seller SKU",
+    "UNGROUNDED_ATTR": "An extracted value does not appear in the seller's text",
 }
+
+SELLER_SKU_RX = re.compile(r"[A-Za-z0-9][A-Za-z0-9._\-]{1,39}")
+
+
+def check_seller_sku(stored_sku: str, declared_sku: Optional[str]) -> list[RuleViolation]:
+    """`declared_sku` is set only when the stored key differs from what the seller sent."""
+    sent = stored_sku if declared_sku is None else declared_sku
+    if not sent.strip():
+        code, detail = "MISSING_SELLER_SKU", "no seller SKU supplied"
+    elif not SELLER_SKU_RX.fullmatch(sent):
+        code, detail = "INVALID_SELLER_SKU", f"{sent!r}"
+    elif sent != stored_sku:
+        code, detail = "DUPLICATE_SELLER_SKU", f"{sent!r} was already used by this supplier"
+    else:
+        return []
+    return [RuleViolation(code=code, field="supplier_sku", detail=detail)]
+
+
+GENDER_WORDS = {"Men": ["men", "mens", "men's"], "Women": ["women", "womens", "women's"],
+                "Unisex": ["unisex"], "Kids": ["kid", "kids", "kids'", "children", "boys", "girls"]}
+VALUE_ALIASES = {"size": N.SIZE_MAP, "colors": N.COLOR_MAP, "connector_type": N.CONNECTOR_MAP, "form": N.FORM_MAP}
+
+
+def _in_text(term: str, text: str) -> bool:
+    return re.search(rf"(?<![a-z0-9]){re.escape(term.lower())}(?![a-z0-9])", text) is not None
+
+
+def _grounded(name: str, value: Any, text: str) -> bool:
+    if isinstance(value, (int, float)):
+        if name == "piece_count" and value == 1:  # a single item rarely states its count
+            return True
+        number = int(value) if float(value).is_integer() else value
+        return re.search(rf"(?<![\d.]){number}(?!\.?\d)", text) is not None
+    value = str(value)
+    if name == "gender":
+        return any(_in_text(w, text) for w in GENDER_WORDS.get(value, [value]))
+    aliases = [a for a, canon in VALUE_ALIASES.get(name, {}).items() if canon == value]
+    if any(_in_text(term, text) for term in [value, *aliases]):
+        return True
+    if name == "size" and value.replace(".", "").isdigit():
+        return re.search(rf"(?<![\d.]){re.escape(value)}(?!\.?\d)", text) is not None
+    words = re.findall(r"[a-z0-9]+", value.lower())
+    return bool(words) and all(_in_text(w, text) for w in words)
+
+
+def check_grounding(attrs: dict[str, Any], source_text: str) -> list[RuleViolation]:
+    """Anti-hallucination: every attribute value must be traceable to the seller's own text."""
+    text = source_text.lower().replace("\u2019", "'")
+    out = []
+    for name, value in attrs.items():
+        missing = [v for v in (value if isinstance(value, list) else [value]) if not _grounded(name, v, text)]
+        if missing:
+            out.append(RuleViolation(code="UNGROUNDED_ATTR", field=name,
+                                     detail=f"{name}: {', '.join(map(str, missing))} not found in the listing"))
+    return out
 
 
 def _term_rx(term: str) -> re.Pattern:

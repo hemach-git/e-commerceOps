@@ -4,12 +4,29 @@ app:
   data_label: "SYNTHETIC DEMO DATA"
 
 llm:
-  provider: mock            # mock | anthropic   (env override: LLM_PROVIDER)
+  provider: mock            # mock | anthropic | ollama   (env override: LLM_PROVIDER)
   model: claude-sonnet-5-5  # env override: LLM_MODEL
   max_tokens: 1024
   temperature: null         # null = provider default
   max_retries: 2            # structural-validation retries per LLM call
   timeout_s: 30
+  ollama:                   # used when provider is ollama (local model, no API key)
+    url: http://localhost:11434   # env override: OLLAMA_URL
+    model: llama3:8b              # env override: OLLAMA_MODEL
+    timeout_s: 180
+    temperature: 0.0
+
+sku:
+  # Three-digit category codes used in marketplace SKUs: MP-<category>-<feed>-<variant>. Never reuse a code.
+  category_codes:
+    APP-SHORTS-M: 10
+    APP-LEGGINGS-W: 11
+    APP-TEES: 12
+    FTW-RUN: 20
+    HOME-COOK: 30
+    ELEC-CHRG: 40
+    HLTH-SUPP: 50
+    TOYS-BLD: 60
 
 pipeline:
   confidence_threshold: 0.70

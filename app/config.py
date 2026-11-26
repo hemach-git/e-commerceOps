@@ -25,6 +25,10 @@ def get_config() -> dict:
         cfg["llm"]["provider"] = os.getenv("LLM_PROVIDER").strip().lower()
     if os.getenv("LLM_MODEL"):
         cfg["llm"]["model"] = os.getenv("LLM_MODEL").strip()
+    if os.getenv("OLLAMA_URL"):
+        cfg["llm"]["ollama"]["url"] = os.getenv("OLLAMA_URL").strip()
+    if os.getenv("OLLAMA_MODEL"):
+        cfg["llm"]["ollama"]["model"] = os.getenv("OLLAMA_MODEL").strip()
     return cfg
 
 

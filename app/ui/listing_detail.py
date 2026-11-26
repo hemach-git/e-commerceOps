@@ -122,6 +122,10 @@ def render(detail: dict, key_prefix: str = "ld") -> None:
             st.dataframe(common.df(variations, ["sku", "size", "color"]), hide_index=True, width="stretch")
         else:
             common.empty("No variations.")
+        marketplace = detail.get("marketplace_skus") or []
+        if marketplace:
+            st.markdown("##### 🔖 Marketplace SKUs")
+            st.dataframe(common.df(marketplace, ["sku", "size", "color"]), hide_index=True, width="stretch")
 
     with st.expander("🔍 Raw LLM output (classification / extraction)"):
         raw = listing.get("llm_raw")

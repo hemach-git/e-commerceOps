@@ -11,10 +11,10 @@ AI-powered ingestion pipeline for third-party marketplace listings: cleans messy
 python -m venv .venv
 .venv\Scripts\activate            # Windows  (source .venv/bin/activate on macOS/Linux)
 pip install -r requirements.txt
-copy .env.example .env            # optional: set LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY
+copy .env.example .env            # optional: LLM_PROVIDER=anthropic (+ ANTHROPIC_API_KEY) or ollama
 python -m app.data.seed_synthetic --reset
 
-streamlit run app/main.py                         # UI      -> http://localhost:8501
+streamlit run app/main.py                         # UI      -> http://localhost:8702
 python -m uvicorn app.api.server:app --port 8861  # API     -> http://localhost:8861/docs
 pytest -q                                         # tests
 python -m evals.run                               # evals   -> evals/results/latest.md
@@ -42,6 +42,18 @@ More diagrams: [docs/architecture.md](docs/architecture.md) (system, data flow, 
 
 Example: `Men's Dry-Fit Athletic Gym Shorts w/ Pockets Pack of 2 (Black/Navy, L) - Running Workout` (size tag `Lrg`, colour tag `Blk/Nvy`)
 → category `APP-SHORTS-M`, title `Men's Running Shorts, Dry-Fit, Pockets (Pack of 2)`, size `[L]`, colours `[Black, Navy]`, variations `ATX-1001-BLAC-L`, `ATX-1001-NAVY-L` → **DRAFT**.
+
+**Local model:** set `LLM_PROVIDER=ollama` after `ollama pull llama3:8b` (change the model with `OLLAMA_MODEL`). No API key is needed. If Ollama or the model is unavailable, the app falls back to mock and says so.
+
+## Seller SKUs, marketplace SKUs and grounding
+| Rule | Behaviour |
+|---|---|
+| Seller SKU required, 2-40 letters, digits, `.` `_` `-` | Otherwise Quarantine: `MISSING_SELLER_SKU` / `INVALID_SELLER_SKU` |
+| Seller SKU unique per supplier | The first listing keeps it; later reuse goes to Quarantine: `DUPLICATE_SELLER_SKU` |
+| Extracted values must appear in the seller's text | Otherwise Quarantine: `UNGROUNDED_ATTR` |
+| Marketplace SKU `MP-<category:3>-<feed:6>-<variant:2>` | Created only when a reviewer approves; one per sellable variant, one for a multi-pack. Look up at `GET /skus/{sku}` |
+
+Plain-English diagrams: [docs/plain_english.md](docs/plain_english.md).
 
 ## Catalog Inspection API
 | Method | Path | Purpose |
